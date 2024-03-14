@@ -19,8 +19,6 @@
 volatile int posA = 0;
 volatile int posB = 0;
 
-int posPrev = 0;
-long prevT = 0;
 volatile float velocity_i = 0;
 volatile long prevT_i = 0;
 
@@ -56,27 +54,49 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(ENCB1), readEncoderB, RISING);
 }
 
-float currentTime = 0;
-float endTime = 400.0;
 void loop() {
   digitalWrite(STANDBY, HIGH);
-  currentTime = micros()/1.0e6;
-  Serial.print("Time: ");
-  Serial.println(currentTime);
-  if(currentTime >= endTime)
-  {
-    digitalWrite(AIN1, HIGH);
-    digitalWrite(BIN1, HIGH);
-  }
-  else
-  {
-    pid(60);
-    
-  }
+  Serial.println("Hello");
+  //move(400);
+  //move(1000);
   
   
 }
+void move(int target)
+{
+  bool cond1 = false;
+  bool cond2 = false;
+  while(true)
+  {
+    pid(60);
+    ATOMIC()
+    {
+      if(abs(posA*1) >= abs(target))
+      {
+        pid(0);
+        setMotor(0,0,PWMA,AIN1,AIN2);
+        cond1 = true;
+      }
+      /*if(abs(posB*1.056) >= abs(target))
+      {
+        setMotor(0,0,PWMB, BIN1, BIN2);
+        cond2 = true;
+      }*/
+    }
+    //Serial.println(posA);
+    //Serial.print(" ");
+    //Serial.println(posB);
+    if(cond1)
+    {
+      posA = 0;
+      //posB = 0;
+      break;
+    }
+  }
+  delay(1000);
+  prevT_i = micros();
 
+}
 void setMotor(int dir, int pwm, int pwmPin, int mot1, int mot2) {
   if (dir == 1) {
     digitalWrite(mot1, HIGH);
@@ -131,11 +151,12 @@ void pid(float speed) {
   v1Prev = velocity;
 
   float target = speed;
-  float kp = 10;
-  float ki = 20;
+  float kp = 16;
+  float ki = .8;
   float e = (v1Filt/145.0*60.0) - target;
   eintegral = eintegral + e*deltaT;
   float u = kp*e + ki*eintegral;
+
 
   int dir = 1;
   if (u<0)
@@ -151,7 +172,6 @@ void pid(float speed) {
   if(target != 0)
   {
     setMotor(dir, pwr, PWMA, AIN1, AIN2);
-    setMotor(-dir, pwr, PWMB, BIN1, BIN2);
   }
   Serial.print(velocity/145.0*60.0);
   Serial.print(" ");
