@@ -19,8 +19,16 @@
 volatile int posA = 0;
 volatile int posB = 0;
 
-float currT = 0;
-float endT = 0;
+volatile float velocity_i = 0;
+volatile long prevT_i = 0;
+
+float v1Filt = 0;
+float v1Prev = 0;
+float v2Filt = 0;
+float v2Prev = 0;
+
+double deltaT = 0;
+float eintegral = 0;
 
 void setup() {
   Serial.begin(115200);
@@ -46,50 +54,49 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(ENCB1), readEncoderB, RISING);
 }
 
-
 void loop() {
-  if(digitalRead(BUTTON) == 0)
-  {
-    digitalWrite(STANDBY, HIGH);
-    move(400);
-    delay(1000);
-    move(1000);
-  }
+  digitalWrite(STANDBY, HIGH);
+  Serial.println("Hello");
+  move(400);
+  //move(1000);
+  
+  
 }
-
 void move(int target)
 {
   bool cond1 = false;
   bool cond2 = false;
   while(true)
   {
-    setMotor(-1, 100, PWMA, AIN1, AIN2);
-    setMotor(1, 100, PWMB, BIN1, BIN2);
+    pid(60);
     ATOMIC()
     {
-      if(abs(posA*1.054) >= abs(target))
+      if(abs(posA*1) >= abs(target))
       {
+        pid(0);
         setMotor(0,0,PWMA,AIN1,AIN2);
         cond1 = true;
       }
-      if(abs(posB*1.056) >= abs(target))
+      /*if(abs(posB*1.056) >= abs(target))
       {
         setMotor(0,0,PWMB, BIN1, BIN2);
         cond2 = true;
-      }
+      }*/
     }
-    Serial.print(posA);
-    Serial.print(" ");
-    Serial.println(posB);
-    if(cond1 && cond2)
+    //Serial.println(posA);
+    //Serial.print(" ");
+    //Serial.println(posB);
+    if(cond1)
     {
       posA = 0;
-      posB = 0;
+      //posB = 0;
       break;
     }
   }
-}
+  delay(1000);
+  prevT_i = micros();
 
+}
 void setMotor(int dir, int pwm, int pwmPin, int mot1, int mot2) {
   if (dir == 1) {
     digitalWrite(mot1, HIGH);
@@ -115,6 +122,10 @@ void readEncoderA() {
   }
   posA += increment;
 
+  long currT = micros();
+  deltaT = ((double) (currT - prevT_i))/1.0e6;
+  velocity_i = increment/deltaT;
+  prevT_i = currT;
 }
 
 void readEncoderB() {
@@ -125,4 +136,46 @@ void readEncoderB() {
   else {
     posB--;
   }
+}
+void pid(float speed) {
+  int pos = 0;
+  float velocity = 0;
+  ATOMIC()
+  {
+    pos = posA;
+    velocity = velocity_i;
+  }
+
+  v1Filt = 0.854*v1Filt + .07281*velocity + .0728*v1Prev;
+  v1Filt = v1Filt;
+  v1Prev = velocity;
+
+  float target = speed;
+  float kp = 16;
+  float ki = .8;
+  float e = (v1Filt/145.0*60.0) - target;
+  eintegral = eintegral + e*deltaT;
+  float u = kp*e + ki*eintegral;
+
+
+  int dir = 1;
+  if (u<0)
+  {
+    dir = -1;
+  }
+  int pwr = (int) fabs(u);
+  if(pwr>255)
+  {
+    pwr = 255;
+  }
+
+  if(target != 0)
+  {
+    setMotor(dir, pwr, PWMA, AIN1, AIN2);
+  }
+  Serial.print(velocity/145.0*60.0);
+  Serial.print(" ");
+  Serial.print(v1Filt/145.0*60.0);
+  Serial.println();
+  delay(1);
 }
