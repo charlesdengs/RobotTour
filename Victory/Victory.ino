@@ -24,13 +24,11 @@ volatile long prevTA = 0;
 volatile float velocityBI = 0;
 volatile long prevTB = 0;
 
-
 float v1FiltA = 0;
 float v1PrevA = 0;
 
 float v1FiltB = 0;
 float v1PrevB = 0;
-
 
 double deltaTA = 0;
 double deltaTB = 0;
@@ -66,17 +64,15 @@ void loop() {
   digitalWrite(STANDBY, HIGH);
   if(digitalRead(BUTTON) == 0)
   {
-    delay(1000);
-    turnLeft(76);
-
+    move(255.282, "BACK");
+    delay(5000);
   }
+
+}
+
+void move(float target, String dir)
+{
   
-  
-  
-}
-
-void move(int target)
-{
   bool cond1 = false;
   bool cond2 = false;
   prevTA = micros();
@@ -91,200 +87,46 @@ void move(int target)
   eintegralB = 0;
   while(true)
   {
-    pidA(60);
-    pidB(60);
+    if(dir == "FOWARD")
+    {
+      pidASpeed(60);
+      pidBSpeed(60);
+    }
+    else if(dir == "LEFT")
+    {
+      pidASpeed(-60);
+      pidBSpeed(60);
+    }
+    else if(dir == "RIGHT")
+    {
+      pidASpeed(60);
+      pidBSpeed(-60);
+    }
+    else if(dir == "BACK")
+    {
+      pidASpeed(-60);
+      pidBSpeed(-60);
+    }
+
     ATOMIC()
     {
-      if(abs(posA*0.95) >= abs(target))
+      if(target - abs(posA) <= 0.5)
       {
-        pidA(0);
+        pidASpeed(0);
         setMotor(0,0,PWMA,AIN1,AIN2);
         cond1 = true;
-        pidB(0);
-        setMotor(0,0,PWMB, BIN1, BIN2);
-        cond2 = true;
       }
-      if(abs(posB*1.05) >= abs(target))
+      if(target - abs(posB) <= 0.5)
       {
-        pidB(0);
+        pidBSpeed(0);
         setMotor(0,0,PWMB, BIN1, BIN2);
         cond2 = true;
-        pidA(0);
-        setMotor(0,0,PWMA,AIN1,AIN2);
-        cond1 = true;
       }
     }
     Serial.println(posA);
     Serial.print(" ");
     Serial.println(posB);
-    if(cond1 || cond2)
-    {
-      posA = 0;
-      posB = 0;
-      break;
-    }
-  }
-  delay(1000);
-  prevTA = micros();
-  prevTB = micros();
-
-}
-
-void moveBack(int target)
-{
-  bool cond1 = false;
-  bool cond2 = false;
-  prevTA = micros();
-  prevTB = micros();
-  velocityAI = 0;
-  velocityBI = 0;
-  v1FiltA = 0;
-  v1PrevA = 0;
-  v1FiltB = 0;
-  v1PrevB = 0;
-  eintegralA = 0;
-  eintegralB = 0;
-  while(true)
-  {
-    pidA(-60);
-    pidB(-60);
-    ATOMIC()
-    {
-      if(abs(posA*0.95) >= abs(target))
-      {
-        pidA(0);
-        setMotor(0,0,PWMA,AIN1,AIN2);
-        cond1 = true;
-        pidB(0);
-        setMotor(0,0,PWMB, BIN1, BIN2);
-        cond2 = true;
-      }
-      if(abs(posB*1.05) >= abs(target))
-      {
-        pidB(0);
-        setMotor(0,0,PWMB, BIN1, BIN2);
-        cond2 = true;
-        pidA(0);
-        setMotor(0,0,PWMA,AIN1,AIN2);
-        cond1 = true;
-      }
-    }
-    Serial.println(posA);
-    Serial.print(" ");
-    Serial.println(posB);
-    if(cond1 || cond2)
-    {
-      posA = 0;
-      posB = 0;
-      break;
-    }
-  }
-  delay(1000);
-  prevTA = micros();
-  prevTB = micros();
-
-}
-
-void turnLeft(int target)
-{
-  bool cond1 = false;
-  bool cond2 = false;
-  prevTA = micros();
-  prevTB = micros();
-  velocityAI = 0;
-  velocityBI = 0;
-  v1FiltA = 0;
-  v1PrevA = 0;
-  v1FiltB = 0;
-  v1PrevB = 0;
-  eintegralA = 0;
-  eintegralB = 0;
-
-  while(true)
-  {
-    pidA(-60);
-    pidB(60);
-    ATOMIC()
-    {
-      if(abs(posA*0.95) >= abs(target))
-      {
-        pidA(0);
-        setMotor(0,0,PWMA,AIN1,AIN2);
-        cond1 = true;
-        pidB(0);
-        setMotor(0,0,PWMB, BIN1, BIN2);
-        cond2 = true;
-      }
-      if(abs(posB*1.05) >= abs(target))
-      {
-        pidB(0);
-        setMotor(0,0,PWMB, BIN1, BIN2);
-        cond2 = true;
-        pidA(0);
-        setMotor(0,0,PWMA,AIN1,AIN2);
-        cond1 = true;
-      }
-    }
-    Serial.println(posA);
-    Serial.print(" ");
-    Serial.println(posB);
-    if(cond1 || cond2)
-    {
-      posA = 0;
-      posB = 0;
-      break;
-    }
-  }
-  delay(1000);
-  prevTA = micros();
-  prevTB = micros();
-
-}
-
-void turnRight(int target)
-{
-  bool cond1 = false;
-  bool cond2 = false;
-  prevTA = micros();
-  prevTB = micros();
-  velocityAI = 0;
-  velocityBI = 0;
-  v1FiltA = 0;
-  v1PrevA = 0;
-  v1FiltB = 0;
-  v1PrevB = 0;
-  eintegralA = 0;
-  eintegralB = 0;
-
-  while(true)
-  {
-    pidA(60);
-    pidB(-60);
-    ATOMIC()
-    {
-      if(abs(posA*0.95) >= abs(target))
-      {
-        pidA(0);
-        setMotor(0,0,PWMA,AIN1,AIN2);
-        cond1 = true;
-        pidB(0);
-        setMotor(0,0,PWMB, BIN1, BIN2);
-        cond2 = true;
-      }
-      if(abs(posB*1.05) >= abs(target))
-      {
-        pidB(0);
-        setMotor(0,0,PWMB, BIN1, BIN2);
-        cond2 = true;
-        pidA(0);
-        setMotor(0,0,PWMA,AIN1,AIN2);
-        cond1 = true;
-      }
-    }
-    Serial.println(posA);
-    Serial.print(" ");
-    Serial.println(posB);
-    if(cond1 || cond2)
+    if(cond1 && cond2)
     {
       posA = 0;
       posB = 0;
@@ -345,7 +187,7 @@ void readEncoderB() {
   prevTB = currT;
 }
 
-void pidA(float speed) {
+void pidASpeed(float speed) {
   int pos = 0;
   float velocity = 0;
   ATOMIC()
@@ -364,7 +206,6 @@ void pidA(float speed) {
   eintegralA = eintegralA + e*deltaTA;
   float u = kp*e + ki*eintegralA;
 
-
   int dir = 1;
   if (u<0)
   {
@@ -380,12 +221,13 @@ void pidA(float speed) {
   {
     setMotor(dir, pwr, PWMA, AIN1, AIN2);
   }
-  //Serial.print(v1FiltB/145.0*60.0);
+
+  //Serial.println(v1FiltA/145.0*60.0);
   //Serial.println();
   delay(1);
 }
 
-void pidB(float speed) {
+void pidBSpeed(float speed) {
   int pos = 0;
   float velocity = 0;
   ATOMIC()
