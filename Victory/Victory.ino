@@ -64,6 +64,7 @@ void loop() {
   digitalWrite(STANDBY, HIGH);
   if(digitalRead(BUTTON) == 0)
   {
+    delay(1000);
     move(255.282, "FORWARD");
     delay(1000);
     move(255.282, "FORWARD");
@@ -89,7 +90,34 @@ void move(float target, String dir)
   eintegralB = 0;
   while(true)
   {
-    if(dir == "FOWARD")
+    ATOMIC()
+    {
+      if(target - abs(posA) <= 1)
+      {
+        pidASpeed(0);
+        setMotor(0,0,PWMA,AIN1,AIN2);
+        cond1 = true;
+      }
+      if(target - abs(posB) <= 1)
+      {
+        pidBSpeed(0);
+        setMotor(0,0,PWMB, BIN1, BIN2);
+        cond2 = true;
+      }
+    }
+
+    Serial.println(posA);
+    Serial.print(" ");
+    Serial.println(posB);
+
+    if(cond1 && cond2)
+    {
+      posA = 0;
+      posB = 0;
+      break;
+    }
+
+    if(dir == "FORWARD")
     {
       pidASpeed(60);
       pidBSpeed(60);
@@ -110,30 +138,7 @@ void move(float target, String dir)
       pidBSpeed(-60);
     }
 
-    ATOMIC()
-    {
-      if(target - abs(posA) <= 0.5)
-      {
-        pidASpeed(0);
-        setMotor(0,0,PWMA,AIN1,AIN2);
-        cond1 = true;
-      }
-      if(target - abs(posB) <= 0.5)
-      {
-        pidBSpeed(0);
-        setMotor(0,0,PWMB, BIN1, BIN2);
-        cond2 = true;
-      }
-    }
-    Serial.println(posA);
-    Serial.print(" ");
-    Serial.println(posB);
-    if(cond1 && cond2)
-    {
-      posA = 0;
-      posB = 0;
-      break;
-    }
+
   }
   delay(1000);
   prevTA = micros();
