@@ -64,8 +64,10 @@ void loop() {
   digitalWrite(STANDBY, HIGH);
   if(digitalRead(BUTTON) == 0)
   {
-    move(255.282, "BACK");
-    delay(5000);
+    move(255.282, "FORWARD");
+    delay(1000);
+    move(255.282, "FORWARD");
+    delay(1000);
   }
 
 }
