@@ -51,7 +51,7 @@ void setup() {
   pinMode(BIN2, OUTPUT);
   //STANDBY PIN
   pinMode(STANDBY, OUTPUT);
-  
+
   pinMode(ENCA1, INPUT);
   pinMode(ENCA2, INPUT);
   pinMode(ENCB1, INPUT);
@@ -62,20 +62,17 @@ void setup() {
 
 void loop() {
   digitalWrite(STANDBY, HIGH);
-  if(digitalRead(BUTTON) == 0)
-  {
+  if (digitalRead(BUTTON) == 0) {
     delay(1000);
     move(257.042275348, "FORWARD");
     delay(1000);
     move(257.042275348, "FORWARD");
     delay(1000);
   }
-
 }
 
-void move(float target, String dir)
-{
-  
+void move(float target, String dir) {
+
   bool cond1 = false;
   bool cond2 = false;
   prevTA = micros();
@@ -88,64 +85,51 @@ void move(float target, String dir)
   v1PrevB = 0;
   eintegralA = 0;
   eintegralB = 0;
-  while(true)
-  {
-    ATOMIC()
-    {
-      if(target - abs(posA) <= 1)
-      {
-        pidASpeed(0);
-        setMotor(0,0,PWMA,AIN1,AIN2);
-        cond1 = true;
-      }
-      if(target - abs(posB) <= 1)
-      {
-        pidBSpeed(0);
-        setMotor(0,0,PWMB, BIN1, BIN2);
-        cond2 = true;
-      }
+  int pos1 = 0;
+  int pos2 = 0;
+  while (true) {
+    ATOMIC() {
+      pos1 = posA;
+      pos2 = posB;
     }
-
+    if (target - abs(pos1) <= 1) {
+      pidASpeed(0);
+      setMotor(0, 0, PWMA, AIN1, AIN2);
+      cond1 = true;
+    }
+    if (target - abs(pos2) <= 1) {
+      pidBSpeed(0);
+      setMotor(0, 0, PWMB, BIN1, BIN2);
+      cond2 = true;
+    }
     Serial.println(posA);
-    Serial.print(" ");
     Serial.println(posB);
-    Serial.println(v1FiltB/145.0*60.0);
-    Serial.println(v1FiltA/145.0*60.0);
+    Serial.println(v1FiltB / 145.0 * 60.0);
+    Serial.println(v1FiltA / 145.0 * 60.0);
 
-    if(cond1 && cond2)
-    {
+    if (cond1 && cond2) {
       posA = 0;
       posB = 0;
       break;
     }
 
-    if(dir == "FORWARD")
-    {
-      pidASpeed(45);
-      pidBSpeed(45);
+    if (dir == "FORWARD") {
+      pidASpeed(60);
+      pidBSpeed(60);
+    } else if (dir == "LEFT") {
+      pidASpeed(-60);
+      pidBSpeed(60);
+    } else if (dir == "RIGHT") {
+      pidASpeed(60);
+      pidBSpeed(-60);
+    } else if (dir == "BACK") {
+      pidASpeed(-60);
+      pidBSpeed(-60);
     }
-    else if(dir == "LEFT")
-    {
-      pidASpeed(-45);
-      pidBSpeed(45);
-    }
-    else if(dir == "RIGHT")
-    {
-      pidASpeed(45);
-      pidBSpeed(-45);
-    }
-    else if(dir == "BACK")
-    {
-      pidASpeed(-45);
-      pidBSpeed(-45);
-    }
-
-
   }
   delay(1000);
   prevTA = micros();
   prevTB = micros();
-
 }
 
 void setMotor(int dir, int pwm, int pwmPin, int mot1, int mot2) {
@@ -167,15 +151,14 @@ void readEncoderA() {
   int increment = 0;
   if (b > 0) {
     increment = 1;
-  }
-  else {
+  } else {
     increment = -1;
   }
   posA += increment;
 
   long currT = micros();
-  deltaTA = ((double) (currT - prevTA))/1.0e6;
-  velocityAI = increment/deltaTA;
+  deltaTA = ((double)(currT - prevTA)) / 1.0e6;
+  velocityAI = increment / deltaTA;
   prevTA = currT;
 }
 
@@ -184,50 +167,45 @@ void readEncoderB() {
   int increment = 0;
   if (b > 0) {
     increment = 1;
-  }
-  else {
+  } else {
     increment = -1;
   }
   posB += increment;
 
   long currT = micros();
-  deltaTB = ((double) (currT - prevTB))/1.0e6;
-  velocityBI = increment/deltaTB;
+  deltaTB = ((double)(currT - prevTB)) / 1.0e6;
+  velocityBI = increment / deltaTB;
   prevTB = currT;
 }
 
 void pidASpeed(float speed) {
   int pos = 0;
   float velocity = 0;
-  ATOMIC()
-  {
+  ATOMIC() {
     pos = posA;
     velocity = velocityAI;
   }
 
-  v1FiltA = 0.854*v1FiltA + .07281*velocity + .0728*v1PrevA;
+  v1FiltA = 0.854 * v1FiltA + .07281 * velocity + .0728 * v1PrevA;
   v1PrevA = velocity;
 
   float target = speed;
-  float kp = 10;
-  float ki = 2;
-  float e = (v1FiltA/145.0*60.0) - target;
-  eintegralA = eintegralA + e*deltaTA;
-  float u = kp*e + ki*eintegralA;
+  float kp = 20;
+  float ki = 1;
+  float e = (v1FiltA / 145.0 * 60.0) - target;
+  eintegralA = eintegralA + e * deltaTA;
+  float u = kp * e + ki * eintegralA;
 
   int dir = 1;
-  if (u<0)
-  {
+  if (u < 0) {
     dir = -1;
   }
-  int pwr = (int) fabs(u);
-  if(pwr>255)
-  {
+  int pwr = (int)fabs(u);
+  if (pwr > 255) {
     pwr = 255;
   }
 
-  if(target != 0)
-  {
+  if (target != 0) {
     setMotor(dir, pwr, PWMA, AIN1, AIN2);
   }
 
@@ -239,39 +217,35 @@ void pidASpeed(float speed) {
 void pidBSpeed(float speed) {
   int pos = 0;
   float velocity = 0;
-  ATOMIC()
-  {
+  ATOMIC() {
     pos = posB;
     velocity = velocityBI;
   }
 
-  v1FiltB = 0.854*v1FiltB + .07281*velocity + .0728*v1PrevB;
+  v1FiltB = 0.854 * v1FiltB + .07281 * velocity + .0728 * v1PrevB;
   v1PrevB = velocity;
 
   float target = speed;
-  float kp = 10;
-  float ki = .8;
-  float e =  target - (v1FiltB/145.0*60.0);
-  eintegralB = eintegralB + e*deltaTB;
-  float u = kp*e + ki*eintegralB;
+  float kp = 20;
+  float ki = 1;
+  float e = target - (v1FiltB / 145.0 * 60.0);
+  eintegralB = eintegralB + e * deltaTB;
+  float u = kp * e + ki * eintegralB;
 
 
   int dir = 1;
-  if (u<0)
-  {
+  if (u < 0) {
     dir = -1;
   }
-  int pwr = (int) fabs(u);
-  if(pwr>255)
-  {
+  int pwr = (int)fabs(u);
+  if (pwr > 255) {
     pwr = 255;
   }
 
-  if(target != 0)
-  {
+  if (target != 0) {
     setMotor(dir, pwr, PWMB, BIN1, BIN2);
   }
-  //Serial.print(v1FiltB/145.0*60.0);
+  //Serial.println(v1FiltB/145.0*60.0);
   //Serial.println();
   delay(1);
 }
