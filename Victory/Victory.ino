@@ -65,9 +65,9 @@ void loop() {
   if(digitalRead(BUTTON) == 0)
   {
     delay(1000);
-    move(255.282, "FORWARD");
+    move(257.042275348, "FORWARD");
     delay(1000);
-    move(255.282, "FORWARD");
+    move(257.042275348, "FORWARD");
     delay(1000);
   }
 
@@ -109,6 +109,8 @@ void move(float target, String dir)
     Serial.println(posA);
     Serial.print(" ");
     Serial.println(posB);
+    Serial.println(v1FiltB/145.0*60.0);
+    Serial.println(v1FiltA/145.0*60.0);
 
     if(cond1 && cond2)
     {
@@ -119,23 +121,23 @@ void move(float target, String dir)
 
     if(dir == "FORWARD")
     {
-      pidASpeed(60);
-      pidBSpeed(60);
+      pidASpeed(45);
+      pidBSpeed(45);
     }
     else if(dir == "LEFT")
     {
-      pidASpeed(-60);
-      pidBSpeed(60);
+      pidASpeed(-45);
+      pidBSpeed(45);
     }
     else if(dir == "RIGHT")
     {
-      pidASpeed(60);
-      pidBSpeed(-60);
+      pidASpeed(45);
+      pidBSpeed(-45);
     }
     else if(dir == "BACK")
     {
-      pidASpeed(-60);
-      pidBSpeed(-60);
+      pidASpeed(-45);
+      pidBSpeed(-45);
     }
 
 
@@ -207,8 +209,8 @@ void pidASpeed(float speed) {
   v1PrevA = velocity;
 
   float target = speed;
-  float kp = 16;
-  float ki = .8;
+  float kp = 10;
+  float ki = 2;
   float e = (v1FiltA/145.0*60.0) - target;
   eintegralA = eintegralA + e*deltaTA;
   float u = kp*e + ki*eintegralA;
@@ -247,7 +249,7 @@ void pidBSpeed(float speed) {
   v1PrevB = velocity;
 
   float target = speed;
-  float kp = 16;
+  float kp = 10;
   float ki = .8;
   float e =  target - (v1FiltB/145.0*60.0);
   eintegralB = eintegralB + e*deltaTB;
