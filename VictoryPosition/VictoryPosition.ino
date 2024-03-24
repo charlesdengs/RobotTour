@@ -26,7 +26,6 @@ float eprevB = 0;
 float eintegralA = 0;
 float eintegralB = 0;
 
-
 void setup() {
   Serial.begin(115200);
   //BUTTON
@@ -61,8 +60,6 @@ void loop() {
   }
   
 }
-
-
 
 void setMotor(int dir, int pwm, int pwmPin, int mot1, int mot2) {
   if (dir == 1) {
@@ -106,16 +103,19 @@ void move(float target)
   prevT = micros();
   while(true)
   {
-    
-    pidA(target);
-    ATOMIC()
+      ATOMIC()
     {
       pos = posA;
     }
-    if(pos == target-1)
+    //need to fix
+    if(pos == target-1 || pos == target + 1)
     {
       break;
     }
+
+    pidA(target);
+    pidB(target);
+
   }
 }
 
@@ -158,7 +158,49 @@ void pidA(float target) {
 
   eprevA = e;
 
-  Serial.print(target);
-  Serial.print(" ");
+  Serial.print("A: ");
   Serial.println(posA);
+}
+
+void pidB(float target) {
+  
+  float kp = 1.95;
+  float kd = .04;
+  float ki = 0;
+
+  //Shared by both pids
+  long currT = micros();
+  float deltaT = ((float)(currT - prevT))/1.0e6;
+  prevT = currT;
+
+  //error
+  int e = target - posB;
+
+  //derivative
+  float dedt = (e - eprevB) / deltaT;
+
+  //integral
+  eintegralB = eintegralB + e*deltaT;
+
+  //signal
+  float u = kp*e + kd*dedt + ki*eintegralB;
+
+  float pwr = fabs(u);
+  if(pwr > 255)
+  {
+    pwr = 255;
+  }
+
+  int dir = 1;
+  if(u < 0 )
+  {
+    dir = -1;
+  }
+
+  setMotor(dir, pwr, PWMB, BIN1, BIN2);
+
+  eprevB = e;
+
+  Serial.print("B: ");
+  Serial.println(posB);
 }
