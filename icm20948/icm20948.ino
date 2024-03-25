@@ -1,4 +1,3 @@
-
 #include "ICM_20948.h"
 
 #define SERIAL_PORT Serial
