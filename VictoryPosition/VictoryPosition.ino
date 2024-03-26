@@ -1,4 +1,6 @@
 #include <SimplyAtomic.h>
+#include "ICM_20948.h"
+ICM_20948_I2C myICM;
 //A is Left Motor
 //B is Right Motor
 #define BUTTON 21
@@ -28,6 +30,27 @@ float eintegralB = 0;
 
 void setup() {
   Serial.begin(115200);
+  Wire.begin();
+  Wire.setClock(400000);
+
+  //setup imu
+  myICM.swReset();
+  delay(250);
+  myICM.sleep(false);
+  myICM.lowPower(false);
+
+  //imu settings
+  myICM.setSampleMode((ICM_20948_Internal_Acc | ICM_20948_Internal_Gyr), ICM_20948_Sample_Mode_Continuous);
+  ICM_20948_fss_t myFSS;
+  myFSS.a = gpm2;
+  myICM.setFullScale(ICM_20948_Internal_Acc, myFSS);
+
+  //low pass filter
+  ICM_20948_dlpcfg_t myDLPcfg;
+  myDLPcfg.a = acc_d246bw_n265bw;
+  myICM.setDLPFcfg(ICM_20948_Internal_Acc, myDLPcfg);
+  ICM_20948_Status_e accDLPEnableStat = myICM.enableDLPF(ICM_20948_Internal_Acc, false);
+
   //BUTTON
   pinMode(BUTTON, INPUT_PULLUP);
 
@@ -103,12 +126,14 @@ void move(float target)
   prevT = micros();
   while(true)
   {
+    
       ATOMIC()
     {
       pos = posA;
     }
-    //need to fix
-    if(pos == target-1 || pos == target + 1)
+
+    myICM.getAGMT();
+    if(Sensor(&myICM))
     {
       break;
     }
@@ -117,6 +142,11 @@ void move(float target)
     pidB(target);
 
   }
+}
+
+bool Sensor(ICM_20948_I2C *sensor)
+{
+  return fabs(sensor->accX()) <= 50.0 + sensor-> temp()*.8;
 }
 
 void pidA(float target) {
