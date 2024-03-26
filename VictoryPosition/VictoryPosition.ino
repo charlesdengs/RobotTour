@@ -18,8 +18,12 @@ ICM_20948_I2C myICM;
 #define ENCB1 35
 #define ENCB2 36
 
+float cali = 0;
+
 volatile int posA = 0;
 volatile int posB = 0;
+int posAPrev = 0;
+int posBPrev = 0;
 
 long prevT = 0;
 
@@ -32,24 +36,32 @@ void setup() {
   Serial.begin(115200);
   Wire.begin();
   Wire.setClock(400000);
+  bool initialized = false;
+  while (!initialized)
+  {
 
-  //setup imu
+    myICM.begin(Wire, 1);
+
+
+    Serial.print(F("Initialization of the sensor returned: "));
+    Serial.println(myICM.statusString());
+    if (myICM.status != ICM_20948_Stat_Ok)
+    {
+      Serial.println("Trying again...");
+      delay(500);
+    }
+    else
+    {
+      initialized = true;
+    }
+  }
   myICM.swReset();
   delay(250);
   myICM.sleep(false);
   myICM.lowPower(false);
-
-  //imu settings
   myICM.setSampleMode((ICM_20948_Internal_Acc | ICM_20948_Internal_Gyr), ICM_20948_Sample_Mode_Continuous);
-  ICM_20948_fss_t myFSS;
-  myFSS.a = gpm2;
-  myICM.setFullScale(ICM_20948_Internal_Acc, myFSS);
-
-  //low pass filter
-  ICM_20948_dlpcfg_t myDLPcfg;
-  myDLPcfg.a = acc_d246bw_n265bw;
-  myICM.setDLPFcfg(ICM_20948_Internal_Acc, myDLPcfg);
-  ICM_20948_Status_e accDLPEnableStat = myICM.enableDLPF(ICM_20948_Internal_Acc, false);
+  
+  
 
   //BUTTON
   pinMode(BUTTON, INPUT_PULLUP);
@@ -77,11 +89,18 @@ void loop() {
   digitalWrite(STANDBY, HIGH);
   if(digitalRead(BUTTON) == 0)
   {
-    move(255);
+    calibrate();
+    Serial.println("Delay");
     delay(1000);
-    move(0);
+    Serial.println("move 255");
+    move(257, "FORWARD");
+    Serial.println("Delay");
+    delay(1000);
+    Serial.println("move 0");
+    move(257,"BACK");
+    Serial.println("done");
+
   }
-  
 }
 
 void setMotor(int dir, int pwm, int pwmPin, int mot1, int mot2) {
@@ -120,40 +139,73 @@ void readEncoderB() {
   posB += increment;
 }
 
-void move(float target)
+void move(float target, String dir)
 {
+  posA = 0;
+  posB = 0;
   int pos = 0;
+  float goal = 0;
+  float currentT = 0;
+  float previousT = millis();
+  float prevTarget = 0;
+  float timer = 2000.0 + millis();
   prevT = micros();
   while(true)
   {
-    
-      ATOMIC()
+    currentT = millis();
+    if(currentT >= previousT + 250 && abs(goal)<abs(target))
     {
-      pos = posA;
+      goal += target/4.0;
+      previousT += 250;
     }
-
+    
+    if (dir == "FORWARD") {
+      pidA(target);
+      pidB(target);
+    } else if (dir == "LEFT") {
+      pidA(-target);
+      pidB(target);
+    } else if (dir == "RIGHT") {
+      pidA(target);
+      pidB(-target);
+    } else if (dir == "BACK") {
+      pidA(-target);
+      pidB(-target);
+    }
     myICM.getAGMT();
-    if(Sensor(&myICM))
+    
+    if(Sensor(&myICM) && goal == target)
     {
+      setMotor(0,0,PWMB, BIN1, BIN2);
+      setMotor(0,0,PWMA, AIN1, AIN2);
+      prevTarget = target;
+      ATOMIC()
+      {
+        posAPrev = posA;
+        posBPrev = posB;
+      }
+      Serial.println(timer - millis());
+      delay(timer - millis());
       break;
     }
-
-    pidA(target);
-    pidB(target);
-
   }
 }
 
 bool Sensor(ICM_20948_I2C *sensor)
 {
-  return fabs(sensor->accX()) <= 50.0 + sensor-> temp()*.8;
+  if(fabs(sensor->accX()) <= cali)
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
 }
-
-
 
 void pidA(float target) {
   
-  float kp = 1.95;
+  float kp = 2;
   float kd = .04;
   float ki = 0;
 
@@ -196,7 +248,7 @@ void pidA(float target) {
 
 void pidB(float target) {
   
-  float kp = 1.95;
+  float kp = 4.5;
   float kd = .04;
   float ki = 0;
 
@@ -235,4 +287,25 @@ void pidB(float target) {
 
   Serial.print("B: ");
   Serial.println(posB);
+}
+
+void calibrate()
+{
+  int counter = 0;
+  float total = 0;
+  float currT = millis();
+  while(millis() < 5000.0 + currT)
+  {
+    myICM.getAGMT();
+    total += test(&myICM);
+    counter++;
+  }
+  cali = total/counter;
+  Serial.println(cali);
+  Serial.println(counter);
+}
+
+float test(ICM_20948_I2C *sensor)
+{
+  return sensor->accX();
 }
