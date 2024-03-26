@@ -84,7 +84,7 @@ void loop()
 }
 
 
-void Sensor(ICM_20948_I2C *sensor)
+void printScaledAGMT(ICM_20948_I2C *sensor)
 {
 
   //Serial.print("Scaled. Acc (mg) [ ");
