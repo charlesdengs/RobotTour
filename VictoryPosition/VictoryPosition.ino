@@ -17,8 +17,9 @@ ICM_20948_I2C myICM;
 #define ENCA2 18
 #define ENCB1 35
 #define ENCB2 36
-
-float cali = 0;
+int encoderRange = 145;
+float caliX = 0;
+float caliZ = 0;
 
 volatile int posA = 0;
 volatile int posB = 0;
@@ -91,15 +92,10 @@ void loop() {
   {
     calibrate();
     delay(1000);
-    Serial.println("Delay");
-    delay(1000);
-    Serial.println("move 255");
     move(257, "FORWARD");
-    Serial.println("Delay");
-    delay(1000);
-    Serial.println("move 0");
-    move(257,"BACK");
+    move(84, "LEFT");
     Serial.println("done");
+    
 
   }
 }
@@ -174,27 +170,58 @@ void move(float target, String dir)
       pidB(-target);
     }
     myICM.getAGMT();
-    
-    if(Sensor(&myICM) && goal == target)
+    if(dir == "FORWARD" || dir == "BACK")
     {
-      setMotor(0,0,PWMB, BIN1, BIN2);
-      setMotor(0,0,PWMA, AIN1, AIN2);
-      prevTarget = target;
-      ATOMIC()
+      if(moving(&myICM) && goal == target)
       {
-        posAPrev = posA;
-        posBPrev = posB;
+        setMotor(0,0,PWMB, BIN1, BIN2);
+        setMotor(0,0,PWMA, AIN1, AIN2);
+        prevTarget = target;
+        ATOMIC()
+        {
+          posAPrev = posA;
+          posBPrev = posB;
+        }
+        Serial.println(timer - millis());
+        delay(timer - millis());
+        break;
       }
-      Serial.println(timer - millis());
-      delay(timer - millis());
-      break;
+    }
+    else if(dir == "LEFT" || dir == "RIGHT")
+    {
+      if(turning(&myICM) && goal == target)
+      {
+        setMotor(0,0,PWMB, BIN1, BIN2);
+        setMotor(0,0,PWMA, AIN1, AIN2);
+        /*prevTarget = target;
+        ATOMIC()
+        {
+          posAPrev = posA;
+          posBPrev = posB;
+        }*/
+        Serial.println(timer - millis());
+        delay(timer - millis());
+        break;
+      }
     }
   }
 }
 
-bool Sensor(ICM_20948_I2C *sensor)
+bool moving(ICM_20948_I2C *sensor)
 {
-  if(fabs(sensor->accX()) <= cali)
+  if(fabs(sensor->accX()) <= caliX)
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
+bool turning(ICM_20948_I2C *sensor)
+{
+  if(fabs(sensor->gyrZ()) <= fabs(caliZ))
   {
     return true;
   }
@@ -292,18 +319,27 @@ void pidB(float target) {
 
 void calibrate()
 {
-  float total = 0;
+  float totalX = 0;
+  float totalZ = 0;
   for(int i = 0; i<1000; i++)
   {
     myICM.getAGMT();
-    total += test(&myICM);
+    totalX += testX(&myICM);
+    totalZ += testZ(&myICM);
   }
 
-  cali = total/1000;
-  Serial.println(cali);
+  caliX = totalX/1000;
+  caliZ = totalZ/1000;
+  Serial.println(caliX);
+  Serial.println(caliZ);
 }
 
-float test(ICM_20948_I2C *sensor)
+float testX(ICM_20948_I2C *sensor)
 {
   return sensor->accX();
+}
+
+float testZ(ICM_20948_I2C *sensor)
+{
+  return sensor->gyrZ();
 }
