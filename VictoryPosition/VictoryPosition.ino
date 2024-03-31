@@ -90,6 +90,7 @@ void loop() {
   if(digitalRead(BUTTON) == 0)
   {
     calibrate();
+    delay(1000);
     Serial.println("Delay");
     delay(1000);
     Serial.println("move 255");
@@ -291,18 +292,15 @@ void pidB(float target) {
 
 void calibrate()
 {
-  int counter = 0;
   float total = 0;
-  float currT = millis();
-  while(millis() < 5000.0 + currT)
+  for(int i = 0; i<1000; i++)
   {
     myICM.getAGMT();
     total += test(&myICM);
-    counter++;
   }
-  cali = total/counter;
+
+  cali = total/1000;
   Serial.println(cali);
-  Serial.println(counter);
 }
 
 float test(ICM_20948_I2C *sensor)
