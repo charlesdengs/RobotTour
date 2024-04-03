@@ -95,8 +95,6 @@ void loop() {
     move(257, "FORWARD");
     move(84, "LEFT");
     Serial.println("done");
-    
-
   }
 }
 
