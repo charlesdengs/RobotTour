@@ -96,10 +96,9 @@ void loop() {
     calibrate();
     delay(1000);
     move(300, "FORWARD");
-    //move(257,"FORWARD");
-    //move(88, "LEFT");
-    //move(257,"FORWARD");
-    //move(88,"RIGHT");
+    move(88, "LEFT");
+    move(257,"FORWARD");
+    move(88,"RIGHT");
     
     Serial.println("done");
   }
