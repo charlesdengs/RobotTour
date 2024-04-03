@@ -18,6 +18,9 @@ ICM_20948_I2C myICM;
 #define ENCB1 35
 #define ENCB2 36
 int encoderRange = 145;
+//turn = 84
+//move without turn = 257
+//move with turn = 300
 float caliX = 0;
 float caliZ = 0;
 
@@ -92,8 +95,12 @@ void loop() {
   {
     calibrate();
     delay(1000);
-    move(257, "FORWARD");
-    move(84, "LEFT");
+    move(300, "FORWARD");
+    //move(257,"FORWARD");
+    //move(88, "LEFT");
+    //move(257,"FORWARD");
+    //move(88,"RIGHT");
+    
     Serial.println("done");
   }
 }
@@ -231,7 +238,7 @@ bool turning(ICM_20948_I2C *sensor)
 
 void pidA(float target) {
   
-  float kp = 2;
+  float kp = 2.2;
   float kd = .04;
   float ki = 0;
 
@@ -274,7 +281,7 @@ void pidA(float target) {
 
 void pidB(float target) {
   
-  float kp = 4.5;
+  float kp = 4.9;
   float kd = .04;
   float ki = 0;
 
