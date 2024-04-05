@@ -19,7 +19,9 @@ ICM_20948_I2C myICM;
 #define ENCB2 36
 int encoderRange = 145;
 //turn = 84
+//move to account for offset of rotational axis after moving axis of rotation to midpoin = 230
 //move without turn = 257
+//move without turn actual = 268
 //move with turn = 300
 float caliX = 0;
 float caliZ = 0;
@@ -91,14 +93,16 @@ void setup() {
 
 void loop() {
   digitalWrite(STANDBY, HIGH);
+  Serial.println(posA);
   if(digitalRead(BUTTON) == 0)
   {
     calibrate();
     delay(1000);
-    move(300, "FORWARD");
+    //move(305, "FORWARD");
     move(88, "LEFT");
-    move(257,"FORWARD");
-    move(88,"RIGHT");
+    //move(230, "FORWARD");
+    //move(268,"FORWARD");
+    //move(88,"RIGHT");
     
     Serial.println("done");
   }
@@ -237,7 +241,7 @@ bool turning(ICM_20948_I2C *sensor)
 
 void pidA(float target) {
   
-  float kp = 2.2;
+  float kp = 2.0;
   float kd = .04;
   float ki = 0;
 
