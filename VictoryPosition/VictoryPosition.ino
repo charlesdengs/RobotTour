@@ -290,6 +290,7 @@ void pidA(float target) {
 
 void pidB(float target) {
   
+  float kp = 5.6;
   float kd = .04;
   float ki = 0;
 
