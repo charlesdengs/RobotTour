@@ -38,6 +38,7 @@ float eprevB = 0;
 float eintegralA = 0;
 float eintegralB = 0;
 
+float kpa = 0;
 void setup() {
   Serial.begin(115200);
   Wire.begin();
@@ -93,17 +94,16 @@ void setup() {
 
 void loop() {
   digitalWrite(STANDBY, HIGH);
-  Serial.println(posA);
   if(digitalRead(BUTTON) == 0)
   {
     calibrate();
     delay(1000);
     //move(305, "FORWARD");
-    move(88, "LEFT");
+    //move(88, "LEFT");
     //move(230, "FORWARD");
     //move(268,"FORWARD");
-    //move(88,"RIGHT");
-    
+    move(88,"RIGHT");
+    Serial.println(kpa);
     Serial.println("done");
   }
 }
@@ -165,21 +165,26 @@ void move(float target, String dir)
     }
     
     if (dir == "FORWARD") {
+      kpa = 2;
       pidA(target);
       pidB(target);
     } else if (dir == "LEFT") {
+      kpa = 5.4;
       pidA(-target);
       pidB(target);
     } else if (dir == "RIGHT") {
+      kpa = 5.4;
       pidA(target);
       pidB(-target);
     } else if (dir == "BACK") {
+      kpa = 2;
       pidA(-target);
       pidB(-target);
     }
     myICM.getAGMT();
     if(dir == "FORWARD" || dir == "BACK")
     {
+      kpa = 2.0;
       if(moving(&myICM) && goal == target)
       {
         setMotor(0,0,PWMB, BIN1, BIN2);
@@ -197,6 +202,7 @@ void move(float target, String dir)
     }
     else if(dir == "LEFT" || dir == "RIGHT")
     {
+
       if(turning(&myICM) && goal == target)
       {
         setMotor(0,0,PWMB, BIN1, BIN2);
@@ -241,7 +247,7 @@ bool turning(ICM_20948_I2C *sensor)
 
 void pidA(float target) {
   
-  float kp = 2.0;
+  //kpA = 2;
   float kd = .04;
   float ki = 0;
 
@@ -260,7 +266,7 @@ void pidA(float target) {
   eintegralA = eintegralA + e*deltaT;
 
   //signal
-  float u = kp*e + kd*dedt + ki*eintegralA;
+  float u = kpa*e + kd*dedt + ki*eintegralA;
 
   float pwr = fabs(u);
   if(pwr > 255)
@@ -284,7 +290,6 @@ void pidA(float target) {
 
 void pidB(float target) {
   
-  float kp = 4.9;
   float kd = .04;
   float ki = 0;
 
